@@ -134,3 +134,43 @@
 .print-only {
   display: none;
 }
+
+/* ------------------------------------------------------------ Documenti stampabili (#print-root) */
+#print-root {
+  display: none;
+}
+@media print {
+  body:has(#print-root .print-doc) #root {
+    display: none !important;
+  }
+  body:has(#print-root .print-doc) #print-root,
+  body:has(#print-root .print-doc) #print-root * {
+    visibility: visible !important;
+  }
+  #print-root {
+    display: block;
+  }
+  .print-doc {
+    color: #111;
+    background: #fff;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 12px;
+    padding: 8mm;
+  }
+  .print-doc table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-doc th,
+  .print-doc td {
+    border: 1px solid #cbd5e1;
+    padding: 4px 6px;
+    text-align: left;
+  }
+  .print-doc th {
+    background: #f1f5f9 !important;
+  }
+  @page {
+    margin: 10mm;
+  }
+}

@@ -1,6 +1,18 @@
-# Visual Lab · Clinical Ophthalmic Platform
+# Visual Lab · Gestionale per centro ottico
 
-Piattaforma web interattiva per oftalmologi, optometristi, studenti di medicina e pazienti.
+Gestionale web per negozi di ottica con un'area clinica integrata per spiegare ai clienti cosa vedono e per la formazione.
+
+## Negozio
+
+- **Schede clienti**: anagrafica con validazione del codice fiscale, esigenze visive, prescrizioni OD/OS (sfera, cilindro, asse, addizione, prisma, DNP, altezze) con andamento nel tempo e stampa, applicazioni di lenti a contatto con data di riordino, punti fedeltà, cronologia completa, consensi GDPR (art. 13 e art. 9), opposizione al Sistema TS, esportazione dati ed eliminazione.
+- **Buste di lavoro**: bacheca per stato (preventivo → ordinato → in lavorazione → pronto → consegnato), montatura dal magazzino o del cliente, lenti e trattamenti, centratura, acconti, consegna con incasso, avviso al cliente; stampa della busta per il laboratorio, ricevuta di acconto, dichiarazione di conformità del dispositivo su misura (Reg. UE 2017/745, Allegato XIII) e certificato di garanzia.
+- **Cassa e vendite**: vendita al banco con lettore di codici a barre, documento commerciale parlante con indicazione dei dispositivi medici, resi, report degli incassi ed esportazione preparatoria delle spese sanitarie (tipo AD) per il Sistema Tessera Sanitaria.
+- **Magazzino**: montature, lenti, LAC e accessori con giacenze, scorte minime, carichi e rettifiche, movimenti, lista di riordino per fornitore, etichette prezzo ed esportazione CSV.
+- **Agenda**: appuntamenti settimanali per esami della vista, controlli LAC e ritiri, con conferma via WhatsApp/SMS.
+- **Richiami**: controlli della vista in scadenza, riordino LAC, occhiali pronti, preventivi in sospeso e compleanni, nel rispetto dei consensi.
+- **Impostazioni**: dati del negozio per i documenti stampati, backup e ripristino completo.
+
+## Area clinica
 
 - **Simulatore ottico in tempo reale** di 16 patologie oculari combinabili (glaucoma, cataratta, AMD, retinopatia diabetica, distacco di retina, miopia, ipermetropia, astigmatismo, cheratocono, miodesopsie, discromatopsie, edema maculare, retinite pigmentosa, uveite, neurite ottica, ambliopia), con filtri CSS, SVG `feColorMatrix` / `feDisplacementMap` e overlay animati. Sorgenti: scene cliniche (lettura, guida notturna, città, griglia di Amsler, tavola pseudoisocromatica), webcam o immagine caricata. Preset per stadio e combinazioni cliniche, modalità di confronto a schermo diviso e generazione diretta del referto.
 - **Atlante patologie** (34 schede) filtrabile per categoria, con descrizione, eziologia, sintomi, indagini strumentali e trattamenti.

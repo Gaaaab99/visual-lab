@@ -1,4 +1,19 @@
-export type ViewId = 'dashboard' | 'simulator' | 'archive' | 'cases' | 'anatomy' | 'tools' | 'quiz' | 'reports';
+export type ViewId =
+  | 'dashboard'
+  | 'customers'
+  | 'orders'
+  | 'agenda'
+  | 'pos'
+  | 'inventory'
+  | 'recalls'
+  | 'settings'
+  | 'simulator'
+  | 'archive'
+  | 'cases'
+  | 'anatomy'
+  | 'tools'
+  | 'quiz'
+  | 'reports';
 
 /* ---------------------------------------------------------------- Simulator */
 

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, CornerDownLeft, FilePlus2, FileText, Menu, Microscope, Search, Stethoscope, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CalendarPlus, ChevronDown, CornerDownLeft, FilePlus2, FileText, Glasses, Menu, Microscope, Package, PackagePlus, Plus, Search, ShoppingCart, Stethoscope, UserPlus, UserRound, type LucideIcon } from 'lucide-react';
+import { useStore } from '../store/StoreContext';
+import { fullName } from '../store/utils';
 import { useApp } from '../context/AppContext';
 import { PATHOLOGIES } from '../data/pathologies';
 import { CASES } from '../data/cases';
@@ -32,6 +34,8 @@ interface Props {
 
 export function TopNav({ view, onNavigate, onOpenMenu, onNewReport }: Props) {
   const { reports } = useApp();
+  const { customers, orders, products } = useStore();
+  const [menu, setMenu] = useState(false);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -54,6 +58,17 @@ export function TopNav({ view, onNavigate, onOpenMenu, onNewReport }: Props) {
     if (!term) return NAV_ITEMS.map((n) => ({ key: `n-${n.id}`, view: n.id, title: n.label, meta: n.description, icon: n.icon, group: 'Vai a' }));
     const out: Result[] = [];
     for (const n of NAV_ITEMS) if (norm(`${n.label} ${n.description}`).includes(term)) out.push({ key: `n-${n.id}`, view: n.id, title: n.label, meta: n.description, icon: n.icon, group: 'Sezioni' });
+    for (const c of customers)
+      if (norm(`${c.firstName} ${c.lastName} ${c.lastName} ${c.firstName} ${c.code} ${c.phone} ${c.fiscalCode} ${c.email}`).includes(term))
+        out.push({ key: `cu-${c.id}`, view: 'customers', id: c.id, title: fullName(c), meta: `Cliente ${c.code} · ${c.phone}`, icon: UserRound, group: 'Clienti' });
+    for (const o of orders) {
+      const c = customers.find((x) => x.id === o.customerId);
+      if (norm(`${o.number} ${c ? fullName(c) : ''} ${o.frame.brand} ${o.frame.model}`).includes(term))
+        out.push({ key: `o-${o.id}`, view: 'orders', id: o.id, title: `Busta ${o.number}`, meta: `${c ? fullName(c) : ''} · ${o.type}`, icon: Glasses, group: 'Buste' });
+    }
+    for (const p of products)
+      if (norm(`${p.brand} ${p.model} ${p.sku} ${p.barcode}`).includes(term))
+        out.push({ key: `pr-${p.id}`, view: 'inventory', id: p.id, title: `${p.brand} ${p.model}`, meta: `${p.category} · giacenza ${p.stock}`, icon: Package, group: 'Magazzino' });
     for (const p of PATHOLOGIES)
       if (norm(`${p.name} ${p.category} ${p.icd10} ${p.symptoms.join(' ')}`).includes(term))
         out.push({ key: `p-${p.id}`, view: 'archive', id: p.id, title: p.name, meta: `${p.category} · ICD-10 ${p.icd10}`, icon: Stethoscope, group: 'Patologie' });
@@ -63,8 +78,8 @@ export function TopNav({ view, onNavigate, onOpenMenu, onNewReport }: Props) {
     for (const r of reports)
       if (norm(`${r.patientName} ${r.patientCode} ${r.diagnosis}`).includes(term))
         out.push({ key: `r-${r.id}`, view: 'reports', id: r.id, title: r.patientName, meta: r.diagnosis || r.patientCode, icon: FileText, group: 'Referti' });
-    return out.slice(0, 12);
-  }, [q, reports]);
+    return out.slice(0, 14);
+  }, [q, reports, customers, orders, products]);
 
   const choose = (r: Result) => {
     onNavigate(r.view, r.id);
@@ -113,7 +128,7 @@ export function TopNav({ view, onNavigate, onOpenMenu, onNewReport }: Props) {
               if (e.key === 'Enter' && results[active]) choose(results[active]);
               if (e.key === 'Escape') inputRef.current?.blur();
             }}
-            placeholder="Cerca patologie, casi, pazienti, sezioni…"
+            placeholder="Cerca clienti, buste, articoli, patologie…"
             className="input h-10 pl-9 pr-16"
             aria-label="Ricerca globale"
           />
@@ -157,9 +172,46 @@ export function TopNav({ view, onNavigate, onOpenMenu, onNewReport }: Props) {
           </AnimatePresence>
         </div>
 
-        <button className="btn-primary hidden shrink-0 sm:inline-flex" onClick={onNewReport}>
-          <FilePlus2 size={16} /> <span className="hidden xl:inline">Nuovo referto</span>
-        </button>
+        <div className="relative shrink-0">
+          <button className="btn-primary" onClick={() => setMenu((m) => !m)} onBlur={() => setTimeout(() => setMenu(false), 150)} aria-haspopup="menu" aria-expanded={menu}>
+            <Plus size={16} /> <span className="hidden xl:inline">Nuovo</span> <ChevronDown size={14} className="hidden sm:block" />
+          </button>
+          <AnimatePresence>
+            {menu && (
+              <motion.div
+                role="menu"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.12 }}
+                className="absolute right-0 top-12 z-50 w-60 rounded-xl border border-white/10 bg-ink-850 p-1.5 shadow-2xl shadow-black/60"
+              >
+                {(
+                  [
+                    ['Cliente', UserPlus, () => onNavigate('customers', 'new')],
+                    ['Busta di lavoro', PackagePlus, () => onNavigate('orders', 'new')],
+                    ['Vendita', ShoppingCart, () => onNavigate('pos', 'new')],
+                    ['Appuntamento', CalendarPlus, () => onNavigate('agenda', 'new')],
+                    ['Referto clinico', FilePlus2, onNewReport],
+                  ] as [string, LucideIcon, () => void][]
+                ).map(([label, Icon, fn]) => (
+                  <button
+                    key={label}
+                    role="menuitem"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setMenu(false);
+                      fn();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-slate-200 transition-colors hover:bg-cyan-400/10"
+                  >
+                    <Icon size={16} className="text-cyan-300" /> {label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </header>
   );

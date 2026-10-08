@@ -10,7 +10,9 @@ import {
   ClipboardList,
   Clock,
   Eye,
-  FilePlus2,
+  PackagePlus,
+  ShoppingCart,
+  UserPlus,
   Flame,
   GraduationCap,
   Lightbulb,
@@ -27,6 +29,7 @@ import { PATHOLOGIES } from '../../data/pathologies';
 import { SmartImage } from '../../components/SmartImage';
 import type { ViewId } from '../../types';
 import { ACHIEVEMENTS, evaluateAchievements } from './achievements';
+import { StoreOverview } from './StoreOverview';
 
 const PEARLS = [
   'Lampi e corpi mobili improvvisi richiedono un fondo oculare in midriasi entro 24 ore: fino al 15% dei distacchi posteriori di vitreo sintomatici ha una rottura retinica.',
@@ -126,15 +129,31 @@ export function DashboardView({ onNavigate, onNewReport }: Props) {
             </div>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
-            <button className="btn-primary" onClick={() => onNavigate('simulator')}>
-              <Eye size={16} /> Apri simulatore
+            <button className="btn-primary" onClick={() => onNavigate('pos', 'new')}>
+              <ShoppingCart size={16} /> Nuova vendita
             </button>
-            <button className="btn-ghost" onClick={onNewReport}>
-              <FilePlus2 size={16} /> Nuovo referto
+            <button className="btn-ghost" onClick={() => onNavigate('orders', 'new')}>
+              <PackagePlus size={16} /> Nuova busta
+            </button>
+            <button className="btn-ghost" onClick={() => onNavigate('customers', 'new')}>
+              <UserPlus size={16} /> Nuovo cliente
+            </button>
+            <button className="btn-ghost" onClick={() => onNavigate('simulator')}>
+              <Eye size={16} /> Simulatore
             </button>
           </div>
         </div>
       </section>
+
+      <StoreOverview onNavigate={onNavigate} />
+
+      <div className="flex items-center gap-3 pt-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Area clinica e formazione</p>
+        <div className="h-px flex-1 bg-white/[0.06]" />
+        <button className="text-xs text-cyan-300 hover:underline" onClick={onNewReport}>
+          Nuovo referto clinico
+        </button>
+      </div>
 
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">

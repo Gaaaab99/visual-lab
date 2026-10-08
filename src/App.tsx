@@ -16,9 +16,17 @@ import { createInitialState } from './features/simulator/conditions';
 import { ArchiveView } from './features/archive/ArchiveView';
 import { CasesView } from './features/cases/CasesView';
 import { ReportsView, type DraftRequest } from './features/reports/ReportsView';
+import type { ConditionId, SimulatorState, ViewId, VisualSource } from './types';
 const AnatomyView = lazy(() => import('./features/anatomy/AnatomyView').then((m) => ({ default: m.AnatomyView })));
 const QuizView = lazy(() => import('./features/quiz/QuizView').then((m) => ({ default: m.QuizView })));
 const ToolsView = lazy(() => import('./features/tools/ToolsView').then((m) => ({ default: m.ToolsView })));
+const CustomersView = lazy(() => import('./features/customers/CustomersView').then((m) => ({ default: m.CustomersView })));
+const OrdersView = lazy(() => import('./features/orders/OrdersView').then((m) => ({ default: m.OrdersView })));
+const PosView = lazy(() => import('./features/pos/PosView').then((m) => ({ default: m.PosView })));
+const InventoryView = lazy(() => import('./features/inventory/InventoryView').then((m) => ({ default: m.InventoryView })));
+const AgendaView = lazy(() => import('./features/agenda/AgendaView').then((m) => ({ default: m.AgendaView })));
+const RecallsView = lazy(() => import('./features/recalls/RecallsView').then((m) => ({ default: m.RecallsView })));
+const SettingsView = lazy(() => import('./features/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
 
 function ViewFallback() {
   return (
@@ -28,7 +36,6 @@ function ViewFallback() {
     </div>
   );
 }
-import type { ConditionId, SimulatorState, ViewId, VisualSource } from './types';
 
 function viewFromHash(): ViewId {
   const h = window.location.hash.replace(/^#\/?/, '') as ViewId;
@@ -174,6 +181,13 @@ export default function App() {
                 {view === 'anatomy' && <AnatomyView onOpenPathology={openPathology} onSimulate={simulate} />}
                 {view === 'quiz' && <QuizView onOpenPathology={openPathology} />}
                 {view === 'tools' && <ToolsView />}
+                {view === 'customers' && <CustomersView focusId={focusFor('customers')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'orders' && <OrdersView focusId={focusFor('orders')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'pos' && <PosView focusId={focusFor('pos')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'inventory' && <InventoryView focusId={focusFor('inventory')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'agenda' && <AgendaView focusId={focusFor('agenda')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'recalls' && <RecallsView focusId={focusFor('recalls')} onFocusConsumed={consumeFocus} onNavigate={navigate} />}
+                {view === 'settings' && <SettingsView onNavigate={navigate} />}
               </Suspense>
             </motion.div>
         </main>

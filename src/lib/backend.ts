@@ -16,6 +16,11 @@ export interface Backend {
   listReports(uid: string): Promise<Report[]>;
   saveReport(uid: string, draft: ReportDraft): Promise<Report>;
   deleteReport(uid: string, id: string): Promise<void>;
+  /** Collezioni generiche del gestionale negozio (clienti, buste, magazzino…) */
+  listDocs<T extends { id: string }>(uid: string, collection: string): Promise<T[]>;
+  putDoc<T extends { id: string }>(uid: string, collection: string, doc: T): Promise<T>;
+  removeDoc(uid: string, collection: string, id: string): Promise<void>;
+  getDoc<T>(uid: string, collection: string, id: string): Promise<T | null>;
 }
 
 export class BackendError extends Error {}
@@ -57,6 +62,7 @@ const LS = {
   session: 'visuallab.session',
   profile: (u: string) => `visuallab.profile.${u}`,
   reports: (u: string) => `visuallab.reports.${u}`,
+  col: (u: string, c: string) => `visuallab.${c}.${u}`,
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -197,6 +203,29 @@ class DemoBackend implements Backend {
       read<Report[]>(LS.reports(userId), []).filter((r) => r.id !== id),
     );
   }
+
+  async listDocs<T extends { id: string }>(userId: string, collection: string) {
+    return read<T[]>(LS.col(userId, collection), []);
+  }
+
+  async putDoc<T extends { id: string }>(userId: string, collection: string, doc: T) {
+    const all = read<T[]>(LS.col(userId, collection), []);
+    const exists = all.some((d) => d.id === doc.id);
+    write(LS.col(userId, collection), exists ? all.map((d) => (d.id === doc.id ? doc : d)) : [doc, ...all]);
+    return doc;
+  }
+
+  async removeDoc(userId: string, collection: string, id: string) {
+    write(
+      LS.col(userId, collection),
+      read<{ id: string }[]>(LS.col(userId, collection), []).filter((d) => d.id !== id),
+    );
+  }
+
+  async getDoc<T>(userId: string, collection: string, id: string) {
+    const all = read<(T & { id: string })[]>(LS.col(userId, collection), []);
+    return all.find((d) => d.id === id) ?? null;
+  }
 }
 
 /* ======================================================================= */
@@ -320,6 +349,29 @@ class FirebaseBackend implements Backend {
   async deleteReport(userId: string, id: string) {
     const { fs, db } = await this.sdk;
     await fs.deleteDoc(fs.doc(db, 'users', userId, 'reports', id));
+  }
+
+  async listDocs<T extends { id: string }>(userId: string, collection: string) {
+    const { fs, db } = await this.sdk;
+    const snap = await fs.getDocs(fs.collection(db, 'users', userId, collection));
+    return snap.docs.map((d) => ({ ...(d.data() as T), id: d.id }));
+  }
+
+  async putDoc<T extends { id: string }>(userId: string, collection: string, doc: T) {
+    const { fs, db } = await this.sdk;
+    await fs.setDoc(fs.doc(db, 'users', userId, collection, doc.id), JSON.parse(JSON.stringify(doc)));
+    return doc;
+  }
+
+  async removeDoc(userId: string, collection: string, id: string) {
+    const { fs, db } = await this.sdk;
+    await fs.deleteDoc(fs.doc(db, 'users', userId, collection, id));
+  }
+
+  async getDoc<T>(userId: string, collection: string, id: string) {
+    const { fs, db } = await this.sdk;
+    const snap = await fs.getDoc(fs.doc(db, 'users', userId, collection, id));
+    return snap.exists() ? (snap.data() as T) : null;
   }
 }
 

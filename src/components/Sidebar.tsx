@@ -43,7 +43,7 @@ function NavList({ view, onNavigate, collapsed }: { view: ViewId; onNavigate: (v
                     {!collapsed && (
                       <>
                         <span className="truncate">{label}</span>
-                        <kbd className="ml-auto hidden rounded border border-white/10 px-1.5 font-mono text-[10px] text-slate-600 group-hover:text-slate-400 xl:block">Alt {shortcut}</kbd>
+                        {shortcut && <kbd className="ml-auto hidden rounded border border-white/10 px-1.5 font-mono text-[10px] text-slate-600 group-hover:text-slate-400 xl:block">Alt {shortcut}</kbd>}
                       </>
                     )}
                   </button>

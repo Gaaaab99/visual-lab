@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Activity, BookOpen, ClipboardList, Eye, Loader2, LogIn, Microscope, UserPlus, WifiOff } from 'lucide-react';
+import { Activity, Eye, Loader2, LogIn, PackageOpen, ShoppingCart, UserPlus, Users, WifiOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { DEMO_ACCOUNT } from '../lib/backend';
 import type { ProfessionalRole } from '../types';
@@ -9,10 +9,10 @@ import { Logo } from './Logo';
 const ROLES: ProfessionalRole[] = ['Oftalmologo', 'Optometrista', 'Ortottista', 'Specializzando', 'Studente di Medicina', 'Paziente'];
 
 const FEATURES = [
-  { icon: Eye, title: 'Simulatore ottico', text: '16 patologie combinabili in tempo reale su scene, webcam o immagini.' },
-  { icon: BookOpen, title: 'Atlante clinico', text: 'Schede con eziologia, diagnostica strumentale e terapie.' },
-  { icon: Microscope, title: 'Casi clinici', text: 'Iconografia reale: retinografie, OCT, topografie, lampada a fessura.' },
-  { icon: ClipboardList, title: 'Referti', text: 'Cartella pazienti con snapshot della simulazione allegato.' },
+  { icon: Users, title: 'Schede clienti', text: 'Prescrizioni, lenti a contatto, consensi GDPR e storico acquisti.' },
+  { icon: PackageOpen, title: 'Buste e laboratorio', text: 'Ordini, centratura, consegna, garanzia e dichiarazione di conformità.' },
+  { icon: ShoppingCart, title: 'Cassa e magazzino', text: 'Vendite, scorte, richiami ed esportazione per il Sistema TS.' },
+  { icon: Eye, title: 'Area clinica', text: 'Simulatore di patologie, atlante, casi clinici, anatomia e quiz.' },
 ];
 
 export function AuthScreen() {
@@ -74,7 +74,7 @@ export function AuthScreen() {
               </div>
             </div>
             <p className="mt-8 max-w-sm text-[15px] leading-relaxed text-slate-300">
-              Piattaforma interattiva per oftalmologi, optometristi, studenti e pazienti: simula la visione patologica, studia l’iconografia clinica e gestisci i referti.
+              Il gestionale per il centro ottico: clienti, buste di lavoro, cassa, magazzino e agenda, con un’area clinica per spiegare ai clienti cosa vedono e formarsi ogni giorno.
             </p>
           </div>
           <ul className="relative mt-10 grid gap-4">
