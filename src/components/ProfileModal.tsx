@@ -5,6 +5,7 @@ import { levelFromXp, useApp, XP } from '../context/AppContext';
 import { CASES } from '../data/cases';
 import type { ProfessionalRole } from '../types';
 import { Modal } from './Modal';
+import { ACHIEVEMENTS, evaluateAchievements } from '../features/dashboard/achievements';
 
 const ROLES: ProfessionalRole[] = ['Oftalmologo', 'Optometrista', 'Ortottista', 'Specializzando', 'Studente di Medicina', 'Paziente'];
 
@@ -18,6 +19,7 @@ export function ProfileModal({ open, onClose }: { open: boolean; onClose: () => 
 
   if (!profile) return null;
   const lvl = levelFromXp(profile.xp);
+  const unlocked = evaluateAchievements(profile, reports);
   const completed = reports.filter((r) => r.status === 'completato').length;
   const dirty =
     form.displayName !== profile.displayName || form.role !== profile.role || form.specialization !== profile.specialization || form.institution !== profile.institution;
@@ -80,6 +82,22 @@ export function ProfileModal({ open, onClose }: { open: boolean; onClose: () => 
               <p className="text-[11px] text-slate-500">{label}</p>
             </div>
           ))}
+        </div>
+
+        <div>
+          <p className="label">Traguardi</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {ACHIEVEMENTS.map((a) => {
+              const ok = unlocked.has(a.id);
+              return (
+                <div key={a.id} className={`rounded-xl border p-2.5 ${ok ? 'border-amber-300/30 bg-amber-400/10' : 'border-white/[0.06] bg-ink-900/40 opacity-60'}`}>
+                  <a.icon size={16} className={ok ? 'text-amber-300' : 'text-slate-600'} />
+                  <p className={`mt-1 text-xs font-medium ${ok ? 'text-amber-100' : 'text-slate-400'}`}>{a.title}</p>
+                  <p className="text-[10px] leading-snug text-slate-500">{a.description}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

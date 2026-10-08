@@ -82,3 +82,71 @@ export const CLINICAL_PRESETS: ClinicalPreset[] = [
   { id: 'ms', label: 'Neurite ottica (SM)', description: 'Neurite retrobulbare in sclerosi multipla.', conditions: { opticNeuritis: 70 } },
   { id: 'rp', label: 'Retinite pigmentosa', description: 'Visione tubulare avanzata e nictalopia.', conditions: { retinitisPigmentosa: 80 } },
 ];
+
+/** Linguaggio semplice per spiegare al paziente cosa vede e come adattarsi */
+export const PATIENT_INFO: Record<ConditionId, { sees: string; tips: string[] }> = {
+  glaucoma: {
+    sees: 'Il centro resta nitido ma la periferia si spegne lentamente, senza che ce ne si accorga: si urtano oggetti laterali e si fatica a scendere le scale.',
+    tips: ['Usare le gocce ogni giorno alla stessa ora', 'Girare la testa per esplorare i lati', 'Illuminare bene scale e corridoi'],
+  },
+  cataract: {
+    sees: 'Tutto appare velato, come dietro un vetro appannato; i colori sono spenti e giallastri e i fari di notte abbagliano.',
+    tips: ['Evitare la guida notturna', 'Occhiali da sole contro l’abbagliamento', 'Luce diretta sul testo per leggere'],
+  },
+  amd: {
+    sees: 'Al centro di ciò che si guarda compare una macchia scura e le linee dritte sembrano ondulate: è difficile leggere e riconoscere i volti.',
+    tips: ['Controllare ogni giorno la griglia di Amsler', 'Usare ingranditori e luce intensa', 'Guardare leggermente di lato per usare la retina sana'],
+  },
+  diabeticRetinopathy: {
+    sees: 'Compaiono macchie scure sparse e zone sfocate a chiazze; la vista può cambiare da un giorno all’altro con la glicemia.',
+    tips: ['Tenere sotto controllo glicemia e pressione', 'Fondo oculare almeno una volta l’anno', 'Segnalare subito macchie nuove'],
+  },
+  retinalDetachment: {
+    sees: 'Lampi di luce e una tenda scura che avanza da un lato del campo visivo: è un’emergenza.',
+    tips: ['Andare subito in pronto soccorso oculistico', 'Evitare sforzi fisici', 'Non aspettare che la tenda raggiunga il centro'],
+  },
+  myopia: {
+    sees: 'Gli oggetti lontani sono sfocati, quelli vicini nitidi.',
+    tips: ['Portare la correzione aggiornata', 'Trascorrere tempo all’aperto (bambini)', 'Controlli periodici del fondo nella miopia elevata'],
+  },
+  hyperopia: {
+    sees: 'Leggere da vicino affatica e diventa sfocato; con l’età anche il lontano peggiora.',
+    tips: ['Lenti positive per lettura e computer', 'Pause frequenti nel lavoro da vicino'],
+  },
+  astigmatism: {
+    sees: 'Le immagini sono strisciate o sdoppiate in una direzione, a tutte le distanze.',
+    tips: ['Lenti cilindriche o toriche', 'Verificare l’asse della correzione in caso di fastidi'],
+  },
+  keratoconus: {
+    sees: 'Immagini multiple e distorte con aloni e raggi attorno alle luci; gli occhiali correggono poco.',
+    tips: ['Non strofinare gli occhi', 'Lenti a contatto rigide o sclerali', 'Valutare il cross-linking se progredisce'],
+  },
+  floaters: {
+    sees: 'Filamenti e puntini che si muovono con lo sguardo, più evidenti su sfondi chiari.',
+    tips: ['Sono quasi sempre innocui', 'Se aumentano all’improvviso o con lampi: visita urgente'],
+  },
+  colorBlindness: {
+    sees: 'Alcuni colori si confondono tra loro (es. rosso e verde) pur vedendo nitido.',
+    tips: ['Usare etichette e simboli oltre ai colori', 'App di riconoscimento colori', 'Informare scuola e lavoro'],
+  },
+  macularEdema: {
+    sees: 'Il centro della vista è annebbiato e un po’ deformato, i colori sbiaditi.',
+    tips: ['Rispettare il calendario delle iniezioni', 'Controllo OCT periodico'],
+  },
+  retinitisPigmentosa: {
+    sees: 'Al buio non si vede quasi nulla e il campo visivo si restringe come guardare dentro un tubo.',
+    tips: ['Torcia e bastone per la mobilità notturna', 'Filtri selettivi contro l’abbagliamento', 'Consulenza genetica'],
+  },
+  uveitis: {
+    sees: 'Occhio rosso e dolente, fastidio forte alla luce e visione nebbiosa con puntini.',
+    tips: ['Usare i colliri esattamente come prescritto', 'Occhiali scuri', 'Controlli ravvicinati della pressione oculare'],
+  },
+  opticNeuritis: {
+    sees: 'Vista appannata al centro, colori slavati (soprattutto il rosso) e dolore muovendo l’occhio.',
+    tips: ['Valutazione neurologica e risonanza', 'Il recupero avviene spesso in settimane'],
+  },
+  amblyopia: {
+    sees: 'Un occhio vede meno dettagli anche con gli occhiali; le lettere vicine si confondono tra loro.',
+    tips: ['Bendaggio dell’occhio sano secondo prescrizione', 'Prima si tratta, migliore il risultato'],
+  },
+};

@@ -105,3 +105,32 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------ Stampa referto */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #report-print,
+  #report-print * {
+    visibility: visible;
+    color: #111 !important;
+    background: transparent !important;
+    border-color: #d4d4d8 !important;
+    box-shadow: none !important;
+  }
+  #report-print {
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+  }
+  #report-print .print-only {
+    display: block !important;
+  }
+}
+.print-only {
+  display: none;
+}

@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle2, ClipboardList, Clock, Eye, FilePlus2, FileText, Layers, Loader2, Pencil, Printer, Search, Trash2, Unlink } from 'lucide-react';
+import { ArrowDownUp, CheckCircle2, ClipboardList, Clock, Copy, Download, Eye, FilePlus2, FileText, Layers, Loader2, Pencil, Printer, Search, Trash2, Unlink, Upload, Users } from 'lucide-react';
+import { PageHeader } from '../../components/PageHeader';
+import { PATHOLOGIES } from '../../data/pathologies';
+import { PatientsPanel } from './PatientsPanel';
+import { downloadFile, reportsToCsv } from './export';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../../components/Modal';
 import type { Report, ReportDraft, ReportStatus, SimulationSnapshot } from '../../types';
@@ -40,28 +44,51 @@ function emptyDraft(snapshot: SimulationSnapshot | null): ReportDraft {
   };
 }
 
+export interface DraftRequest {
+  snapshot: SimulationSnapshot | null;
+}
+
 interface Props {
   focusId: string | null;
   onFocusConsumed: () => void;
-  pendingSnapshot: SimulationSnapshot | null;
-  onSnapshotConsumed: () => void;
+  draftRequest: DraftRequest | null;
+  onDraftConsumed: () => void;
   onOpenSimulator: () => void;
 }
 
-export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnapshotConsumed, onOpenSimulator }: Props) {
-  const { reports, reportsLoading, deleteReport } = useApp();
+type SortKey = 'recenti' | 'data' | 'nome';
+
+/** Bozza di una nuova visita per un paziente già in archivio */
+function followUpDraft(r: Report): ReportDraft {
+  return {
+    ...emptyDraft(null),
+    patientName: r.patientName,
+    patientCode: r.patientCode,
+    age: r.age,
+    eye: r.eye,
+    diagnosis: r.diagnosis,
+    prescription: r.prescription,
+    notes: `Controllo successivo alla visita del ${fmtDate(r.date)}.`,
+  };
+}
+
+export function ReportsView({ focusId, onFocusConsumed, draftRequest, onDraftConsumed, onOpenSimulator }: Props) {
+  const { reports, reportsLoading, deleteReport, saveReport, notify } = useApp();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<ReportStatus | 'tutti'>('tutti');
+  const [tab, setTab] = useState<'referti' | 'pazienti'>('referti');
+  const [sort, setSort] = useState<SortKey>('recenti');
+  const importRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<ReportDraft | null>(null);
   const [viewing, setViewing] = useState<Report | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Report | null>(null);
 
   useEffect(() => {
-    if (pendingSnapshot) {
-      setEditing(emptyDraft(pendingSnapshot));
-      onSnapshotConsumed();
+    if (draftRequest) {
+      setEditing(emptyDraft(draftRequest.snapshot));
+      onDraftConsumed();
     }
-  }, [pendingSnapshot, onSnapshotConsumed]);
+  }, [draftRequest, onDraftConsumed]);
 
   useEffect(() => {
     if (!focusId) return;
@@ -74,10 +101,39 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return reports.filter(
+    const out = reports.filter(
       (r) => (status === 'tutti' || r.status === status) && (!t || `${r.patientName} ${r.patientCode} ${r.diagnosis}`.toLowerCase().includes(t)),
     );
-  }, [reports, q, status]);
+    if (sort === 'data') out.sort((a, b) => b.date.localeCompare(a.date));
+    if (sort === 'nome') out.sort((a, b) => a.patientName.localeCompare(b.patientName, 'it'));
+    return out;
+  }, [reports, q, status, sort]);
+
+  const exportCsv = () => downloadFile(`visual-lab-referti-${new Date().toISOString().slice(0, 10)}.csv`, reportsToCsv(filtered), 'text/csv;charset=utf-8');
+  const exportJson = () => downloadFile(`visual-lab-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(reports, null, 2), 'application/json');
+  const importJson = async (file: File) => {
+    try {
+      const data = JSON.parse(await file.text()) as unknown;
+      if (!Array.isArray(data)) throw new Error('Formato non valido');
+      let n = 0;
+      for (const raw of data as Partial<Report>[]) {
+        if (!raw || typeof raw.patientName !== 'string' || typeof raw.patientCode !== 'string') continue;
+        const base = emptyDraft(null);
+        await saveReport({
+          ...base,
+          ...raw,
+          id: undefined,
+          visualAcuity: { ...base.visualAcuity, ...raw.visualAcuity },
+          iop: { ...base.iop, ...raw.iop },
+          simulation: raw.simulation ?? null,
+        });
+        n++;
+      }
+      notify(`${n} referti importati.`);
+    } catch {
+      notify('File di backup non valido.', 'error');
+    }
+  };
 
   const stats = [
     { label: 'Referti totali', value: reports.length, icon: FileText },
@@ -88,20 +144,22 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300/80">Cartella clinica</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Pazienti e referti</h1>
-        </div>
-        <div className="flex gap-2">
-          <button className="btn-ghost" onClick={onOpenSimulator}>
-            <Eye size={16} /> Dal simulatore
-          </button>
-          <button className="btn-primary" onClick={() => setEditing(emptyDraft(null))}>
-            <FilePlus2 size={16} /> Nuovo referto
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Cartella clinica"
+        title="Pazienti e referti"
+        icon={<ClipboardList size={22} />}
+        description="Referti con snapshot del simulatore, storico per paziente con andamento di visus e IOP, esportazione CSV e backup."
+        actions={
+          <>
+            <button className="btn-ghost" onClick={onOpenSimulator}>
+              <Eye size={16} /> Dal simulatore
+            </button>
+            <button className="btn-primary" onClick={() => setEditing(emptyDraft(null))}>
+              <FilePlus2 size={16} /> Nuovo referto
+            </button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon }, i) => (
@@ -117,7 +175,49 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
         ))}
       </div>
 
-      <div className="panel overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-xl border border-white/10 bg-ink-900/50 p-1">
+          {(
+            [
+              ['referti', 'Referti', FileText],
+              ['pazienti', 'Pazienti', Users],
+            ] as const
+          ).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${tab === id ? 'bg-cyan-500/15 text-cyan-100' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              <Icon size={15} /> {label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <button className="btn-ghost py-1.5 text-xs" onClick={exportCsv} disabled={!filtered.length}>
+            <Download size={14} /> CSV
+          </button>
+          <button className="btn-ghost py-1.5 text-xs" onClick={exportJson} disabled={!reports.length}>
+            <Download size={14} /> Backup JSON
+          </button>
+          <button className="btn-ghost py-1.5 text-xs" onClick={() => importRef.current?.click()}>
+            <Upload size={14} /> Importa
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importJson(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
+      </div>
+
+      {tab === 'pazienti' && <PatientsPanel reports={reports} onOpenReport={setViewing} onNewVisit={(r) => setEditing(followUpDraft(r))} />}
+      <div className={`panel overflow-hidden ${tab === 'pazienti' ? 'hidden' : ''}`}>
         <div className="flex flex-wrap items-center gap-3 border-b border-white/[0.06] p-4">
           <div className="relative min-w-56 flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -130,6 +230,14 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
               </button>
             ))}
           </div>
+          <label className="flex items-center gap-2 text-xs text-slate-400">
+            <ArrowDownUp size={14} />
+            <select className="input w-auto py-1.5 text-xs" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordina">
+              <option value="recenti">Ultima modifica</option>
+              <option value="data">Data visita</option>
+              <option value="nome">Nome paziente</option>
+            </select>
+          </label>
         </div>
 
         {reportsLoading ? (
@@ -160,7 +268,6 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
                 <AnimatePresence initial={false}>
                   {filtered.map((r) => (
                     <motion.tr
-                      layout
                       key={r.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -188,7 +295,10 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <button className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-300" onClick={() => setEditing(r)} aria-label="Modifica">
+                          <button className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-300" onClick={() => setEditing(followUpDraft(r))} aria-label="Nuova visita" title="Nuova visita per questo paziente">
+                            <Copy size={15} />
+                          </button>
+                          <button className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-cyan-300" onClick={() => setEditing(r)} aria-label="Modifica" title="Modifica">
                             <Pencil size={15} />
                           </button>
                           <button className="rounded-lg p-2 text-slate-400 hover:bg-rose-500/10 hover:text-rose-300" onClick={() => setConfirmDelete(r)} aria-label="Elimina">
@@ -262,6 +372,16 @@ export function ReportsView({ focusId, onFocusConsumed, pendingSnapshot, onSnaps
 
 /* ------------------------------------------------------------ Editor */
 
+const RX_TEMPLATES = [
+  'Latanoprost 0,005% 1 gtt la sera',
+  'Timololo 0,5% 1 gtt x 2/die',
+  'Desametasone collirio 1 gtt x 4/die a scalare',
+  'Sostituti lacrimali al bisogno',
+  'Anti-VEGF intravitreale, 3 dosi di carico',
+  'Integratori AREDS2',
+  'Nuova correzione ottica',
+];
+
 function ReportEditor({ draft, onClose, onOpenSimulator }: { draft: ReportDraft | null; onClose: () => void; onOpenSimulator: () => void }) {
   const { saveReport, notify } = useApp();
   const [form, setForm] = useState<ReportDraft | null>(draft);
@@ -334,15 +454,20 @@ function ReportEditor({ draft, onClose, onOpenSimulator }: { draft: ReportDraft 
             </div>
           </fieldset>
 
+          <datalist id="vl-va">
+            {['10/10', '9/10', '8/10', '7/10', '6/10', '5/10', '4/10', '3/10', '2/10', '1/10', '1/20', 'CF', 'HM', 'PL', 'NPL'].map((v) => (
+              <option key={v} value={v} />
+            ))}
+          </datalist>
           <fieldset className="grid gap-4 sm:grid-cols-4">
             <legend className="mb-3 text-xs font-semibold uppercase tracking-wider text-cyan-300/90">Esame obiettivo</legend>
             <div>
               <label className="label">Visus OD</label>
-              <input className="input" placeholder="10/10" value={form.visualAcuity.od} onChange={(e) => set('visualAcuity', { ...form.visualAcuity, od: e.target.value })} />
+              <input className="input" list="vl-va" placeholder="10/10" value={form.visualAcuity.od} onChange={(e) => set('visualAcuity', { ...form.visualAcuity, od: e.target.value })} />
             </div>
             <div>
               <label className="label">Visus OS</label>
-              <input className="input" placeholder="10/10" value={form.visualAcuity.os} onChange={(e) => set('visualAcuity', { ...form.visualAcuity, os: e.target.value })} />
+              <input className="input" list="vl-va" placeholder="10/10" value={form.visualAcuity.os} onChange={(e) => set('visualAcuity', { ...form.visualAcuity, os: e.target.value })} />
             </div>
             <div>
               <label className="label">IOP OD (mmHg)</label>
@@ -382,7 +507,12 @@ function ReportEditor({ draft, onClose, onOpenSimulator }: { draft: ReportDraft 
           <div className="grid gap-4">
             <div>
               <label className="label">Diagnosi finale</label>
-              <input className="input" value={form.diagnosis} onChange={(e) => set('diagnosis', e.target.value)} placeholder="Es. Glaucoma primario ad angolo aperto OU" />
+              <input className="input" list="vl-diagnoses" value={form.diagnosis} onChange={(e) => set('diagnosis', e.target.value)} placeholder="Es. Glaucoma primario ad angolo aperto OU" />
+              <datalist id="vl-diagnoses">
+                {PATHOLOGIES.map((p) => (
+                  <option key={p.id} value={p.name} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="label">Note cliniche</label>
@@ -391,11 +521,28 @@ function ReportEditor({ draft, onClose, onOpenSimulator }: { draft: ReportDraft 
             <div>
               <label className="label">Prescrizione terapeutica</label>
               <textarea className="input min-h-20" value={form.prescription} onChange={(e) => set('prescription', e.target.value)} placeholder="Farmaco, posologia, correzione ottica, intervento…" />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {RX_TEMPLATES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => set('prescription', form.prescription ? `${form.prescription}\n${t}` : t)}
+                    className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-400 transition-colors hover:border-cyan-400/40 hover:text-cyan-100"
+                  >
+                    + {t}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">Controllo / follow-up</label>
-                <input className="input" value={form.followUp} onChange={(e) => set('followUp', e.target.value)} placeholder="Es. controllo a 3 mesi con OCT" />
+                <input className="input" list="vl-followup" value={form.followUp} onChange={(e) => set('followUp', e.target.value)} placeholder="Es. controllo a 3 mesi con OCT" />
+                <datalist id="vl-followup">
+                  {['Controllo a 1 settimana', 'Controllo a 1 mese', 'Controllo a 3 mesi con OCT', 'Controllo a 6 mesi con campo visivo', 'Controllo annuale', 'Urgente: ricovero/intervento'].map((v) => (
+                    <option key={v} value={v} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="label">Stato</label>
@@ -466,6 +613,12 @@ function ReportDetail({ report: r, onClose, onEdit }: { report: Report | null; o
     >
       {r && (
         <div className="space-y-5 p-5 text-sm" id="report-print">
+          <div className="print-only border-b pb-3">
+            <p className="text-lg font-semibold">Visual Lab · Referto oftalmologico</p>
+            <p className="text-xs">
+              {r.patientName} · {r.patientCode} · {fmtDate(r.date)}
+            </p>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <StatusBadge status={r.status} />
             <span className="text-xs text-slate-500">Aggiornato il {new Date(r.updatedAt).toLocaleString('it-IT')}</span>

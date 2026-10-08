@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { Activity, AlertOctagon, BookOpen, Eye, FlaskConical, Microscope, Pill, Search, Stethoscope, Syringe, Zap, Scissors, Glasses, HeartPulse } from 'lucide-react';
 import { CATEGORIES, PATHOLOGIES, PATHOLOGY_BY_ID } from '../../data/pathologies';
 import { CASES } from '../../data/cases';
 import type { ConditionId, Pathology, PathologyCategory } from '../../types';
 import { Modal } from '../../components/Modal';
+import { PageHeader } from '../../components/PageHeader';
 
 const URGENCY_TONE: Record<Pathology['urgency'], string> = {
   Elettiva: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
@@ -34,6 +35,8 @@ interface Props {
 export function ArchiveView({ focusId, onFocusConsumed, onSimulate, onOpenCase }: Props) {
   const [cat, setCat] = useState<PathologyCategory | 'Tutte'>('Tutte');
   const [q, setQ] = useState('');
+  const [urgency, setUrgency] = useState<Pathology['urgency'] | 'Tutte'>('Tutte');
+  const [onlySim, setOnlySim] = useState(false);
   const [selected, setSelected] = useState<Pathology | null>(null);
 
   useEffect(() => {
@@ -45,21 +48,37 @@ export function ArchiveView({ focusId, onFocusConsumed, onSimulate, onOpenCase }
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return PATHOLOGIES.filter((p) => (cat === 'Tutte' || p.category === cat) && (!term || `${p.name} ${p.summary} ${p.icd10} ${p.symptoms.join(' ')}`.toLowerCase().includes(term)));
-  }, [cat, q]);
+    return PATHOLOGIES.filter(
+      (p) =>
+        (cat === 'Tutte' || p.category === cat) &&
+        (urgency === 'Tutte' || p.urgency === urgency) &&
+        (!onlySim || p.simulatorId) &&
+        (!term || `${p.name} ${p.summary} ${p.icd10} ${p.symptoms.join(' ')}`.toLowerCase().includes(term)),
+    ).sort((a, b) => a.name.localeCompare(b.name, 'it'));
+  }, [cat, q, urgency, onlySim]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300/80">Atlante clinico</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Archivio patologie</h1>
-          <p className="mt-1 text-sm text-slate-400">{PATHOLOGIES.length} schede con eziologia, sintomi, indagini strumentali e terapie.</p>
-        </div>
-        <div className="relative w-full max-w-sm">
+      <PageHeader
+        eyebrow="Atlante clinico"
+        title="Archivio patologie"
+        icon={<BookOpen size={22} />}
+        description={`${PATHOLOGIES.length} schede con eziologia, fattori di rischio, sintomi, indagini strumentali e terapie raccomandate.`}
+      />
+      <div className="panel flex flex-wrap items-center gap-3 p-3">
+        <div className="relative min-w-52 flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input className="input pl-9" placeholder="Filtra per nome, sintomo o ICD-10…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <select className="input w-auto" value={urgency} onChange={(e) => setUrgency(e.target.value as Pathology['urgency'] | 'Tutte')} aria-label="Priorità">
+          <option value="Tutte">Ogni priorità</option>
+          {(['Emergenza', 'Urgente', 'Programmata', 'Elettiva'] as const).map((u) => (
+            <option key={u}>{u}</option>
+          ))}
+        </select>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400">
+          <input type="checkbox" className="accent-cyan-500" checked={onlySim} onChange={(e) => setOnlySim(e.target.checked)} /> Solo simulabili
+        </label>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -80,18 +99,15 @@ export function ArchiveView({ focusId, onFocusConsumed, onSimulate, onOpenCase }
         })}
       </div>
 
-      <motion.div layout className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <AnimatePresence mode="popLayout">
-          {list.map((p) => (
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {list.map((p, i) => (
             <motion.button
-              layout
               key={p.id}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              whileHover={{ y: -3 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: Math.min(i, 12) * 0.025 }}
               onClick={() => setSelected(p)}
-              className={`group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br ${CATEGORY_ACCENT[p.category]} to-transparent p-5 text-left transition hover:border-cyan-400/30`}
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br ${CATEGORY_ACCENT[p.category]} to-transparent p-5 text-left transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-cyan-400/30`}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="chip border-white/10 bg-ink-900/60 text-slate-300">{p.category}</span>
@@ -99,7 +115,7 @@ export function ArchiveView({ focusId, onFocusConsumed, onSimulate, onOpenCase }
               </div>
               <h3 className="mt-3 text-base font-semibold text-white group-hover:text-cyan-100">{p.name}</h3>
               <p className="mt-1.5 line-clamp-3 text-sm text-slate-400">{p.summary}</p>
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-auto flex items-center gap-2 pt-4">
                 <span className={`chip ${URGENCY_TONE[p.urgency]}`}>{p.urgency}</span>
                 {p.simulatorId && (
                   <span className="chip border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
@@ -109,8 +125,7 @@ export function ArchiveView({ focusId, onFocusConsumed, onSimulate, onOpenCase }
               </div>
             </motion.button>
           ))}
-        </AnimatePresence>
-      </motion.div>
+      </div>
       {list.length === 0 && <p className="py-16 text-center text-sm text-slate-500">Nessuna patologia corrisponde ai filtri.</p>}
 
       <PathologyModal pathology={selected} onClose={() => setSelected(null)} onSimulate={onSimulate} onOpenCase={onOpenCase} />

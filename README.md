@@ -3,10 +3,16 @@
 Piattaforma web interattiva per oftalmologi, optometristi, studenti di medicina e pazienti.
 
 - **Simulatore ottico in tempo reale** di 16 patologie oculari combinabili (glaucoma, cataratta, AMD, retinopatia diabetica, distacco di retina, miopia, ipermetropia, astigmatismo, cheratocono, miodesopsie, discromatopsie, edema maculare, retinite pigmentosa, uveite, neurite ottica, ambliopia), con filtri CSS, SVG `feColorMatrix` / `feDisplacementMap` e overlay animati. Sorgenti: scene cliniche (lettura, guida notturna, città, griglia di Amsler, tavola pseudoisocromatica), webcam o immagine caricata. Preset per stadio e combinazioni cliniche, modalità di confronto a schermo diviso e generazione diretta del referto.
-- **Atlante patologie** filtrabile per categoria, con descrizione, eziologia, sintomi, indagini strumentali e trattamenti.
-- **Casi clinici** con immagini reali (Wikimedia Commons, licenze libere indicate su ogni caso), zoom/pan, etichette diagnostiche, diagnosi differenziale e decorso.
+- **Atlante patologie** (34 schede) filtrabile per categoria, con descrizione, eziologia, sintomi, indagini strumentali e trattamenti.
+- **Casi clinici** (17) con immagini reali, modalità diagnosi a scelta multipla, filtro red-free (Wikimedia Commons, licenze libere indicate su ogni caso), zoom/pan, etichette diagnostiche, diagnosi differenziale e decorso.
 - **Cartella pazienti e referti** con snapshot dei parametri del simulatore, ricerca, stato (In corso / Completato) e dettaglio stampabile.
-- **Autenticazione e profilo medico** con specializzazione, contatore referti e livello formativo/XP.
+- **Autenticazione e profilo medico** con specializzazione, contatore referti, livello formativo/XP e traguardi.
+- **Dashboard** con caso del giorno, perla clinica, attività recente e accesso rapido.
+- **Anatomia interattiva**: sezione sagittale del bulbo, fondo oculare e strati retinici OCT cliccabili, con valori normali e patologie correlate.
+- **Quiz clinico**: 75 domande (anche su immagini reali) con modalità a tempo, spiegazioni e storico dei risultati.
+- **Strumenti clinici**: convertitore di acuità visiva, ottotipo ETDRS, correzione IOP/pachimetria, distanza al vertice, trasposizione del cilindro, calcolo IOL SRK/II, test di Ishihara e griglia di Amsler interattiva.
+
+Il simulatore include anche la visione contingente allo sguardo (i deficit seguono il puntatore), la riproduzione animata della progressione, lo schermo intero e una spiegazione in linguaggio semplice per il paziente. I referti hanno una vista per paziente con andamento di visus e IOP, esportazione CSV, backup/importazione JSON e stampa.
 
 ## Stack
 

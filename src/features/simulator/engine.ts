@@ -44,6 +44,8 @@ export const SCENE_DISTANCE: Record<SceneId, 'near' | 'far'> = {
   ishihara: 'near',
   night: 'far',
   city: 'far',
+  faces: 'far',
+  stairs: 'far',
 };
 
 /** Livello normalizzato 0..1 di ciascuna condizione (0 se disattiva) */
@@ -161,6 +163,8 @@ export const SCENE_LABEL: Record<SceneId, string> = {
   reading: 'Lettura testo (vicino)',
   night: 'Guida notturna',
   city: 'Paesaggio urbano',
+  faces: 'Riconoscimento volti',
+  stairs: 'Scale e gradini',
   amsler: 'Griglia di Amsler',
   ishihara: 'Tavola pseudoisocromatica',
 };

@@ -1,4 +1,4 @@
-export type ViewId = 'simulator' | 'archive' | 'cases' | 'reports';
+export type ViewId = 'dashboard' | 'simulator' | 'archive' | 'cases' | 'anatomy' | 'tools' | 'quiz' | 'reports';
 
 /* ---------------------------------------------------------------- Simulator */
 
@@ -47,7 +47,7 @@ export interface SimulatorState {
   params: SimulatorParams;
 }
 
-export type SceneId = 'reading' | 'night' | 'city' | 'amsler' | 'ishihara';
+export type SceneId = 'reading' | 'night' | 'city' | 'faces' | 'stairs' | 'amsler' | 'ishihara';
 
 export type VisualSource =
   | { kind: 'scene'; scene: SceneId }
@@ -164,7 +164,16 @@ export interface UserProfile {
   institution: string;
   xp: number;
   casesStudied: string[];
+  /** Storico dei quiz completati */
+  quizHistory?: QuizResult[];
   createdAt: string;
+}
+
+export interface QuizResult {
+  date: string;
+  category: string;
+  score: number;
+  total: number;
 }
 
 export interface AppUser {

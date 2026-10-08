@@ -50,10 +50,17 @@ function FilterDefs({ model }: { model: RenderModel }) {
 
 const W = 160;
 const H = 100;
-const CX = W / 2;
-const CY = H / 2;
 
-function FieldLoss({ level, kind }: { level: number; kind: 'glaucoma' | 'rp' }) {
+/** Punto di fissazione in % del viewport (50,50 = centro) */
+export interface Fixation {
+  x: number;
+  y: number;
+}
+const CENTER: Fixation = { x: 50, y: 50 };
+const fx = (f: Fixation) => (f.x / 100) * W;
+const fy = (f: Fixation) => (f.y / 100) * H;
+
+function FieldLoss({ level, kind, fix = CENTER }: { level: number; kind: 'glaucoma' | 'rp'; fix?: Fixation }) {
   if (level <= 0) return null;
   const clear = kind === 'glaucoma' ? 95 * (1 - level * 0.86) + 4 : 70 * (1 - level * 0.9) + 6;
   const fade = kind === 'glaucoma' ? 22 + level * 6 : 10 + level * 4;
@@ -62,7 +69,7 @@ function FieldLoss({ level, kind }: { level: number; kind: 'glaucoma' | 'rp' }) 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
       <defs>
-        <radialGradient id={id} cx={CX} cy={CY} r={r} gradientUnits="userSpaceOnUse">
+        <radialGradient id={id} cx={fx(fix)} cy={fy(fix)} r={r} gradientUnits="userSpaceOnUse">
           <stop offset={clear / r} stopColor="#000" stopOpacity="0" />
           <stop offset={(clear + fade * 0.55) / r} stopColor={kind === 'rp' ? '#030303' : '#0a0a0a'} stopOpacity={kind === 'rp' ? 0.9 : 0.7} />
           <stop offset="1" stopColor="#000" stopOpacity={kind === 'rp' ? 1 : 0.97} />
@@ -73,19 +80,21 @@ function FieldLoss({ level, kind }: { level: number; kind: 'glaucoma' | 'rp' }) 
   );
 }
 
-function PeripheralDesensitization({ level }: { level: number }) {
+function PeripheralDesensitization({ level, fix = CENTER }: { level: number; fix?: Fixation }) {
   if (level <= 0) return null;
   const inner = Math.max(8, 55 - level * 40);
   const style: CSSProperties = {
     backdropFilter: `blur(${2 + level * 5}px) grayscale(${0.3 + level * 0.5})`,
     WebkitBackdropFilter: `blur(${2 + level * 5}px) grayscale(${0.3 + level * 0.5})`,
-    maskImage: `radial-gradient(ellipse 50% 80% at 50% 50%, transparent ${inner}%, black ${inner + 30}%)`,
-    WebkitMaskImage: `radial-gradient(ellipse 50% 80% at 50% 50%, transparent ${inner}%, black ${inner + 30}%)`,
+    maskImage: `radial-gradient(ellipse 50% 80% at ${fix.x}% ${fix.y}%, transparent ${inner}%, black ${inner + 30}%)`,
+    WebkitMaskImage: `radial-gradient(ellipse 50% 80% at ${fix.x}% ${fix.y}%, transparent ${inner}%, black ${inner + 30}%)`,
   };
   return <div className="absolute inset-0" style={style} />;
 }
 
-function CentralScotoma({ amd, edema }: { amd: number; edema: number }) {
+function CentralScotoma({ amd, edema, fix = CENTER }: { amd: number; edema: number; fix?: Fixation }) {
+  const cx = fx(fix);
+  const cy = fy(fix);
   const blobs = useMemo(() => {
     const r = mulberry32(31);
     return Array.from({ length: 7 }, () => ({ a: r() * Math.PI * 2, d: r(), s: 0.5 + r() * 0.6 }));
@@ -100,8 +109,8 @@ function CentralScotoma({ amd, edema }: { amd: number; edema: number }) {
         style={{
           backdropFilter: `blur(${3 + blurBackdrop * 8}px)`,
           WebkitBackdropFilter: `blur(${3 + blurBackdrop * 8}px)`,
-          maskImage: `radial-gradient(ellipse ${maskR}% ${maskR * 1.6}% at 50% 50%, black 40%, transparent 100%)`,
-          WebkitMaskImage: `radial-gradient(ellipse ${maskR}% ${maskR * 1.6}% at 50% 50%, black 40%, transparent 100%)`,
+          maskImage: `radial-gradient(ellipse ${maskR}% ${maskR * 1.6}% at ${fix.x}% ${fix.y}%, black 40%, transparent 100%)`,
+          WebkitMaskImage: `radial-gradient(ellipse ${maskR}% ${maskR * 1.6}% at ${fix.x}% ${fix.y}%, black 40%, transparent 100%)`,
         }}
       />
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
@@ -115,16 +124,16 @@ function CentralScotoma({ amd, edema }: { amd: number; edema: number }) {
         </defs>
         {amd > 0 && (
           <g filter="url(#vl-soft)" opacity={0.55 + amd * 0.42}>
-            <ellipse cx={CX} cy={CY} rx={4 + amd * 16} ry={4 + amd * 15} fill="#16110d" />
+            <ellipse cx={cx} cy={cy} rx={4 + amd * 16} ry={4 + amd * 15} fill="#16110d" />
             {blobs.map((b, i) => (
-              <circle key={i} cx={CX + Math.cos(b.a) * b.d * (4 + amd * 12)} cy={CY + Math.sin(b.a) * b.d * (3 + amd * 10)} r={(2 + amd * 9) * b.s} fill="#1f1812" />
+              <circle key={i} cx={cx + Math.cos(b.a) * b.d * (4 + amd * 12)} cy={cy + Math.sin(b.a) * b.d * (3 + amd * 10)} r={(2 + amd * 9) * b.s} fill="#1f1812" />
             ))}
           </g>
         )}
         {edema > 0 && (
           <g filter="url(#vl-softer)" opacity={0.25 + edema * 0.4}>
-            <ellipse cx={CX} cy={CY} rx={6 + edema * 14} ry={5 + edema * 12} fill="#8d8466" />
-            <ellipse cx={CX - 2} cy={CY + 1} rx={3 + edema * 6} ry={3 + edema * 5} fill="#5c5544" />
+            <ellipse cx={cx} cy={cy} rx={6 + edema * 14} ry={5 + edema * 12} fill="#8d8466" />
+            <ellipse cx={cx - 2} cy={cy + 1} rx={3 + edema * 6} ry={3 + edema * 5} fill="#5c5544" />
           </g>
         )}
       </svg>
@@ -344,7 +353,7 @@ function Uveitis({ level }: { level: number }) {
   );
 }
 
-function OpticNeuritis({ level }: { level: number }) {
+function OpticNeuritis({ level, fix = CENTER }: { level: number; fix?: Fixation }) {
   if (level <= 0) return null;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
@@ -354,7 +363,7 @@ function OpticNeuritis({ level }: { level: number }) {
         </filter>
       </defs>
       {/* scotoma centrocecale: dal punto di fissazione verso la macchia cieca (temporale, OD) */}
-      <ellipse cx={CX + 9} cy={CY + 1} rx={10 + level * 16} ry={6 + level * 9} fill="#2a2a2e" opacity={0.3 + level * 0.5} filter="url(#vl-on)" />
+      <ellipse cx={fx(fix) + 9} cy={fy(fix) + 1} rx={10 + level * 16} ry={6 + level * 9} fill="#2a2a2e" opacity={0.3 + level * 0.5} filter="url(#vl-on)" />
     </svg>
   );
 }
@@ -419,15 +428,25 @@ interface Props {
   source: VisualSource;
   stream: MediaStream | null;
   compare: boolean;
+  /** Se definito, i deficit retinici seguono il puntatore (visione contingente allo sguardo) */
+  gazeMode?: boolean;
 }
 
-export function Viewport({ state, source, stream, compare }: Props) {
+export function Viewport({ state, source, stream, compare, gazeMode = false }: Props) {
+  const [fix, setFix] = useState<Fixation>(CENTER);
+  useEffect(() => {
+    if (!gazeMode) setFix(CENTER);
+  }, [gazeMode]);
   const model = useMemo(() => computeRender(state, source), [state, source]);
   const [split, setSplit] = useState(50);
   const boxRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
   const onMove = (e: RPointerEvent) => {
+    if (gazeMode && boxRef.current && !dragging.current) {
+      const rect = boxRef.current.getBoundingClientRect();
+      setFix({ x: ((e.clientX - rect.left) / rect.width) * 100, y: ((e.clientY - rect.top) / rect.height) * 100 });
+    }
     if (!dragging.current || !boxRef.current) return;
     const rect = boxRef.current.getBoundingClientRect();
     setSplit(Math.min(98, Math.max(2, ((e.clientX - rect.left) / rect.width) * 100)));
@@ -442,7 +461,10 @@ export function Viewport({ state, source, stream, compare }: Props) {
       className="relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl bg-black ring-1 ring-white/10"
       onPointerMove={onMove}
       onPointerUp={() => (dragging.current = false)}
-      onPointerLeave={() => (dragging.current = false)}
+      onPointerLeave={() => {
+        dragging.current = false;
+        if (gazeMode) setFix(CENTER);
+      }}
     >
       <FilterDefs model={model} />
 
@@ -473,8 +495,8 @@ export function Viewport({ state, source, stream, compare }: Props) {
             style={{
               filter: `${model.filter} url(#vl-metamorph)`,
               transform: 'scale(1.04)',
-              maskImage: `radial-gradient(ellipse ${model.distortion.radius}% ${model.distortion.radius * 1.6}% at 50% 50%, black 35%, transparent 100%)`,
-              WebkitMaskImage: `radial-gradient(ellipse ${model.distortion.radius}% ${model.distortion.radius * 1.6}% at 50% 50%, black 35%, transparent 100%)`,
+              maskImage: `radial-gradient(ellipse ${model.distortion.radius}% ${model.distortion.radius * 1.6}% at ${fix.x}% ${fix.y}%, black 35%, transparent 100%)`,
+              WebkitMaskImage: `radial-gradient(ellipse ${model.distortion.radius}% ${model.distortion.radius * 1.6}% at ${fix.x}% ${fix.y}%, black 35%, transparent 100%)`,
             }}
           >
             <SourceLayer source={source} stream={stream} />
@@ -482,15 +504,16 @@ export function Viewport({ state, source, stream, compare }: Props) {
         )}
 
         <Glare model={model} source={source} />
-        <PeripheralDesensitization level={Math.max(s.glaucoma, s.retinitisPigmentosa * 0.8)} />
-        <FieldLoss level={s.glaucoma} kind="glaucoma" />
-        <FieldLoss level={s.retinitisPigmentosa} kind="rp" />
-        <CentralScotoma amd={s.amd} edema={s.macularEdema} />
+        <PeripheralDesensitization level={Math.max(s.glaucoma, s.retinitisPigmentosa * 0.8)} fix={fix} />
+        <FieldLoss level={s.glaucoma} kind="glaucoma" fix={fix} />
+        <FieldLoss level={s.retinitisPigmentosa} kind="rp" fix={fix} />
+        <CentralScotoma amd={s.amd} edema={s.macularEdema} fix={fix} />
         <DiabeticSpots level={s.diabeticRetinopathy} />
-        <OpticNeuritis level={s.opticNeuritis} />
+        <OpticNeuritis level={s.opticNeuritis} fix={fix} />
         <Uveitis level={s.uveitis} />
         <Detachment level={s.retinalDetachment} quadrant={state.params.detachmentQuadrant} />
         <Floaters level={s.floaters} />
+        {gazeMode && <div className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgb(255_255_255/0.6)]" style={{ left: `${fix.x}%`, top: `${fix.y}%` }} />}
       </div>
 
       {compare && (

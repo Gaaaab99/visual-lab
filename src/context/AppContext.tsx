@@ -22,6 +22,8 @@ interface AppContextValue {
   saveReport: (draft: ReportDraft) => Promise<Report>;
   deleteReport: (id: string) => Promise<void>;
   markCaseStudied: (caseId: string) => void;
+  /** Assegna XP all'utente con notifica; `patch` aggiorna altri campi del profilo nello stesso salvataggio */
+  awardXp: (amount: number, reason: string, patch?: Partial<UserProfile>) => Promise<void>;
   toasts: Toast[];
   notify: (text: string, kind?: Toast['kind']) => void;
   dismissToast: (id: number) => void;
@@ -149,6 +151,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await backend.deleteReport(user.uid, id);
         setReports((rs) => rs.filter((r) => r.id !== id));
         notify('Referto eliminato.', 'info');
+      },
+      awardXp: async (amount, reason, patch) => {
+        await addXp(amount, patch);
+        if (amount > 0) notify(`${reason} · +${amount} XP`);
       },
       markCaseStudied: (caseId) => {
         if (!profile || profile.casesStudied.includes(caseId)) return;

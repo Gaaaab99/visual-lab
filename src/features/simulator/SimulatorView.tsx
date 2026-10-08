@@ -13,13 +13,20 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
+  Crosshair,
+  Eye,
+  Maximize,
+  Pause,
+  Play,
+  MessageCircleHeart,
 } from 'lucide-react';
+import { PageHeader } from '../../components/PageHeader';
 import type { ColorBlindType, ConditionId, Quadrant, SceneId, SimulationSnapshot, SimulatorState, VisualSource } from '../../types';
-import { CLINICAL_PRESETS, COLOR_BLIND_LABEL, CONDITIONS, CONDITION_BY_ID, QUADRANT_LABEL, STAGES, createInitialState, type ConditionMeta, type StageId } from './conditions';
+import { CLINICAL_PRESETS, COLOR_BLIND_LABEL, CONDITIONS, CONDITION_BY_ID, PATIENT_INFO, QUADRANT_LABEL, STAGES, createInitialState, type ConditionMeta, type StageId } from './conditions';
 import { SCENE_LABEL, describeCondition, snapshot } from './engine';
 import { Viewport } from './Viewport';
 
-const SCENE_ORDER: SceneId[] = ['reading', 'night', 'city', 'amsler', 'ishihara'];
+const SCENE_ORDER: SceneId[] = ['city', 'night', 'reading', 'faces', 'stairs', 'amsler', 'ishihara'];
 
 const GROUP_ORDER: ConditionMeta['group'][] = ['Mezzi diottrici', 'Retina', 'Nervo ottico', 'Refrazione', 'Cornea', 'Uvea', 'Colore', 'Funzionale'];
 
@@ -36,6 +43,46 @@ export function SimulatorView({ state, setState, source, setSource, onGenerateRe
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [camError, setCamError] = useState<string | null>(null);
   const [compare, setCompare] = useState(false);
+  const [gaze, setGaze] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(1);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  /* ---------------- progressione temporale ---------------- */
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    const start = performance.now();
+    const DURATION = 7000;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - start) / DURATION);
+      setProgress(k);
+      if (k < 1) raf = requestAnimationFrame(tick);
+      else setPlaying(false);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing]);
+
+  const displayState = useMemo<SimulatorState>(() => {
+    if (progress >= 1) return state;
+    const conditions = { ...state.conditions };
+    (Object.keys(conditions) as ConditionId[]).forEach((id) => {
+      conditions[id] = { ...conditions[id], severity: Math.round(conditions[id].severity * progress) };
+    });
+    const p = state.params;
+    return {
+      conditions,
+      params: { ...p, myopiaDiopters: p.myopiaDiopters * progress, hyperopiaDiopters: p.hyperopiaDiopters * progress, astigmatismCylinder: p.astigmatismCylinder * progress },
+    };
+  }, [state, progress]);
+
+  const toggleFullscreen = () => {
+    const el = stageRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen?.().catch(() => undefined);
+  };
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ 'Mezzi diottrici': true, Retina: true, 'Nervo ottico': true, Refrazione: true });
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -113,12 +160,12 @@ export function SimulatorView({ state, setState, source, setSource, onGenerateRe
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       {/* ======================= Viewport column ======================= */}
       <section className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-cyan-300/80">Simulatore ottico interattivo</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Visione soggettiva del paziente</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <PageHeader
+          eyebrow="Simulatore ottico interattivo"
+          title="Visione soggettiva del paziente"
+          icon={<Eye size={22} />}
+          actions={
+          <>
             <button className={`btn-ghost ${compare ? 'border-cyan-400/50 bg-cyan-400/10 text-cyan-100' : ''}`} onClick={() => setCompare((c) => !c)} aria-pressed={compare}>
               <Columns2 size={16} /> Confronto
             </button>
@@ -128,12 +175,57 @@ export function SimulatorView({ state, setState, source, setSource, onGenerateRe
             <button className="btn-primary" onClick={() => onGenerateReport(snapshot(state, source))}>
               <FilePlus2 size={16} /> Genera referto
             </button>
-          </div>
-        </div>
+          </>
+          }
+        />
 
         <div className="panel p-2 sm:p-3">
-          <div className="relative">
-            <Viewport state={state} source={source} stream={stream} compare={compare} />
+          <div ref={stageRef} className="relative flex items-center justify-center bg-ink-950 [&:fullscreen]:p-6">
+            <div className="w-full">
+              <Viewport state={displayState} source={source} stream={stream} compare={compare} gazeMode={gaze} />
+            </div>
+            <div className="absolute bottom-3 right-3 z-20 flex gap-1 rounded-xl border border-white/10 bg-ink-950/80 p-1 backdrop-blur">
+              <button
+                className={`rounded-lg p-2 transition-colors ${playing ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-300 hover:bg-white/10'}`}
+                onClick={() => {
+                  if (playing) {
+                    setPlaying(false);
+                    setProgress(1);
+                  } else if (active.length) {
+                    setProgress(0);
+                    setPlaying(true);
+                  }
+                }}
+                disabled={!active.length}
+                title="Riproduci la progressione della malattia"
+                aria-label="Riproduci progressione"
+              >
+                {playing ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <button
+                className={`rounded-lg p-2 transition-colors ${gaze ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-300 hover:bg-white/10'}`}
+                onClick={() => setGaze((g) => !g)}
+                aria-pressed={gaze}
+                title="Visione contingente allo sguardo: i deficit retinici seguono il puntatore"
+                aria-label="Segui lo sguardo"
+              >
+                <Crosshair size={16} />
+              </button>
+              <button className="rounded-lg p-2 text-slate-300 transition-colors hover:bg-white/10" onClick={toggleFullscreen} title="Schermo intero" aria-label="Schermo intero">
+                <Maximize size={16} />
+              </button>
+            </div>
+            {playing && (
+              <div className="absolute inset-x-6 bottom-16 z-20 sm:inset-x-24">
+                <div className="mb-1 flex justify-between text-[11px] font-medium text-white drop-shadow">
+                  <span>Esordio</span>
+                  <span>{progress < 0.34 ? 'Stadio iniziale' : progress < 0.67 ? 'Stadio moderato' : 'Stadio attuale'}</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-black/50">
+                  <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500" style={{ width: `${progress * 100}%` }} />
+                </div>
+              </div>
+            )}
             {source.kind === 'webcam' && !stream && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-ink-950/90 text-center">
                 {camError ? <CameraOff className="text-rose-300" size={30} /> : <Camera className="animate-pulse text-cyan-300" size={30} />}
@@ -226,6 +318,31 @@ export function SimulatorView({ state, setState, source, setSource, onGenerateRe
             </ul>
           )}
         </div>
+
+        {active.length > 0 && (
+          <div className="panel p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <MessageCircleHeart size={16} className="text-rose-300" /> Spiegazione per il paziente
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Linguaggio semplice da condividere durante il colloquio.</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {active.map((c) => (
+                <div key={c.id} className="rounded-xl border border-white/[0.06] bg-ink-900/50 p-3">
+                  <p className="text-sm font-medium text-white">{c.name}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-300">{PATIENT_INFO[c.id].sees}</p>
+                  <ul className="mt-2 space-y-1">
+                    {PATIENT_INFO[c.id].tips.map((t) => (
+                      <li key={t} className="flex gap-2 text-xs text-slate-400">
+                        <span className="text-emerald-400">✓</span>
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ======================= Control panel ======================= */}
@@ -320,7 +437,12 @@ function ConditionControl({ meta, state, onToggle, onSeverity, setParam }: Contr
           onClick={() => onToggle(meta.id)}
           className={`relative h-5 w-9 shrink-0 rounded-full transition ${c.enabled ? 'bg-cyan-500' : 'bg-ink-600'}`}
         >
-          <motion.span layout className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow ${c.enabled ? 'left-[18px]' : 'left-0.5'}`} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
+          <motion.span
+            className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow"
+            initial={false}
+            animate={{ x: c.enabled ? 16 : 0 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 34 }}
+          />
         </button>
         <div className="min-w-0 flex-1">
           <p className={`truncate text-sm font-medium ${c.enabled ? 'text-white' : 'text-slate-300'}`}>{meta.name}</p>

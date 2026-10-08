@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import type { SceneId } from '../../../types';
 import { mulberry32 } from '../engine';
+import { FacesScene, StairsScene } from './ExtraScenes';
 
 /** Sorgenti luminose della scena in % del viewport: usate per aloni e glare */
 export const SCENE_LIGHTS: Record<SceneId, { x: number; y: number; r: number }[]> = {
@@ -14,6 +15,8 @@ export const SCENE_LIGHTS: Record<SceneId, { x: number; y: number; r: number }[]
     { x: 72.5, y: 45, r: 0.45 },
   ],
   city: [{ x: 82, y: 16, r: 1.4 }],
+  faces: [{ x: 84, y: 22, r: 1 }],
+  stairs: [],
   reading: [],
   amsler: [],
   ishihara: [],
@@ -353,6 +356,8 @@ export const SCENES: Record<SceneId, React.ComponentType> = {
   reading: ReadingScene,
   night: NightScene,
   city: CityScene,
+  faces: FacesScene,
+  stairs: StairsScene,
   amsler: AmslerScene,
   ishihara: IshiharaScene,
 };
